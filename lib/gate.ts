@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { hmacSha256Hex } from "@/lib/hmac";
 
 export const HMAC_KEY_ENV = "SITE_HMAC_KEY";
 export const PASSWORD_HMAC_ENV = "SITE_PASSWORD_HMAC";
@@ -24,11 +25,11 @@ function equalHex(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
 }
 
-export function passwordMatches(password: string): boolean {
+export async function passwordMatches(password: string): Promise<boolean> {
   const key = trimmed(HMAC_KEY_ENV);
   const expected = trimmed(PASSWORD_HMAC_ENV)?.toLowerCase();
   if (!key || !expected) return false;
-  const actual = mac(key, password);
+  const actual = await hmacSha256Hex(key, password);
   return equalHex(actual, expected);
 }
 

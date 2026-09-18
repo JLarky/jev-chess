@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password required." }, { status: 400 });
   }
 
-  if (!passwordMatches(password)) {
+  if (!(await passwordMatches(password))) {
     return NextResponse.json({ error: "Wrong password." }, { status: 401 });
   }
 

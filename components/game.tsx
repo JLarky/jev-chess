@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs, PieceHandlerArgs } from "react-chessboard";
 import { Chess, type Square } from "chess.js";
+import { GateSetup } from "@/components/gate-setup";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -254,11 +255,16 @@ export function Game() {
           <AlertTitle>{gateConfigured === false ? "Gate is not configured" : "Password required"}</AlertTitle>
           <AlertDescription className="space-y-3">
             {gateConfigured === false ? (
-              <p>
-                Set <span className="font-mono">SITE_HMAC_KEY</span> and{" "}
-                <span className="font-mono">SITE_PASSWORD_HMAC</span> on the server. Jev is not
-                called until those are set and the board is unlocked.
-              </p>
+              <>
+                <p>
+                  Jev will not play until the gate is configured. Set{" "}
+                  <span className="font-mono">SITE_HMAC_KEY</span> and{" "}
+                  <span className="font-mono">SITE_PASSWORD_HMAC</span> on the Vercel project
+                  for Production. The password itself is never stored. Redeploy after saving
+                  the variables.
+                </p>
+                <GateSetup />
+              </>
             ) : (
               <form
                 className="flex flex-col gap-2 sm:flex-row"
