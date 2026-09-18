@@ -35,6 +35,10 @@ export function Game() {
   const [error, setError] = useState<JevError | null>(null);
   const [thinking, setThinking] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const [gateConfigured, setGateConfigured] = useState<boolean | null>(null);
+  const [password, setPassword] = useState("");
+  const [gateError, setGateError] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
   const requestGen = useRef(0);
@@ -42,15 +46,18 @@ export function Game() {
   const chess = useMemo(() => new Chess(fen), [fen]);
   const outcome = describeOutcome(chess);
   const turn = sideToMove(chess);
-  const humanToMove = !outcome.over && turn === humanSide && !thinking;
+  const humanToMove = unlocked === true && !outcome.over && turn === humanSide && !thinking;
   const lastMove = moves.at(-1);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/status")
       .then((res) => res.json())
-      .then((data: { hasApiKey?: boolean }) => {
-        if (!cancelled) setHasApiKey(Boolean(data.hasApiKey));
+      .then((data: { hasApiKey?: boolean; unlocked?: boolean; gateConfigured?: boolean }) => {
+        if (cancelled) return;
+        setHasApiKey(Boolean(data.hasApiKey));
+        setUnlocked(Boolean(data.unlocked));
+        setGateConfigured(Boolean(data.gateConfigured));
       })
       .catch(() => {
         if (!cancelled) setHasApiKey(false);
@@ -59,6 +66,23 @@ export function Game() {
       cancelled = true;
     };
   }, []);
+
+
+  const unlock = async () => {
+    setGateError(null);
+    const response = await fetch("/api/gate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setGateError(payload?.error ?? "Could not unlock.");
+      return;
+    }
+    setPassword("");
+    setUnlocked(true);
+  };
 
   const askJev = useCallback(async (position: string) => {
     const gen = ++requestGen.current;
@@ -224,6 +248,43 @@ export function Game() {
           <Button onClick={() => startGame(humanSide)}>New game</Button>
         </div>
       </header>
+
+      {unlocked !== true && (
+        <Alert>
+          <AlertTitle>{gateConfigured === false ? "Gate is not configured" : "Password required"}</AlertTitle>
+          <AlertDescription className="space-y-3">
+            {gateConfigured === false ? (
+              <p>
+                Set <span className="font-mono">SITE_HMAC_KEY</span> and{" "}
+                <span className="font-mono">SITE_PASSWORD_HMAC</span> on the server. Jev is not
+                called until those are set and the board is unlocked.
+              </p>
+            ) : (
+              <form
+                className="flex flex-col gap-2 sm:flex-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void unlock();
+                }}
+              >
+                <input
+                  type="password"
+                  name="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
+                  placeholder="Password"
+                />
+                <Button type="submit" size="sm">
+                  Unlock
+                </Button>
+              </form>
+            )}
+            {gateError && <p>{gateError}</p>}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {hasApiKey === false && (
         <Alert>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { JevRequestError, playJevMove } from "@/lib/jev";
 import { validateFen } from "chess.js";
+import { GATE_COOKIE, gateConfigured, readCookie, sessionValid } from "@/lib/gate";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,13 @@ function apiKey(): string | undefined {
 }
 
 export async function POST(request: Request) {
+  if (!gateConfigured() || !sessionValid(readCookie(request, GATE_COOKIE))) {
+    return NextResponse.json(
+      { error: "Unlock the board before Jev will play.", retryable: false },
+      { status: 401 },
+    );
+  }
+
   const key = apiKey();
   if (!key) {
     return NextResponse.json(

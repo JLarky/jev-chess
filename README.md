@@ -63,3 +63,12 @@ Choice allows at most **255** options. The known maximum of legal chess moves in
 - the outgoing body is `state` + a Choice over the position’s legal UCI moves
 - an illegal or unknown `answers.choice` is rejected and never applied
 - promotion (`a7a8q`) and castling (`e1g1`) are applied by chess.js
+
+## Password gate
+
+Jev is not called until the visitor unlocks the board. The password is not stored. Vercel holds two environment variables:
+
+- `SITE_HMAC_KEY`, a random key
+- `SITE_PASSWORD_HMAC`, the hex HMAC-SHA256 of the password under that key
+
+Leave both empty in git. If either is missing, `/api/jev-move` refuses the call and does not touch TypeSafe. Set them in the Vercel project environment and redeploy.
