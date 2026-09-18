@@ -86,6 +86,7 @@ export function Game() {
   };
 
   const askJev = useCallback(async (position: string) => {
+    if (gateConfigured !== true || unlocked !== true) return;
     const gen = ++requestGen.current;
     setThinking(true);
     setError(null);
@@ -139,7 +140,7 @@ export function Game() {
     } finally {
       if (gen === requestGen.current) setThinking(false);
     }
-  }, []);
+  }, [gateConfigured, unlocked]);
 
   const startGame = useCallback(
     (side: Side) => {
@@ -229,19 +230,57 @@ export function Game() {
     return styles;
   }, [destinations, lastMove, selectedSquare]);
 
+  const pageClass = "mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8 md:py-10";
+
+  const heading = (
+    <div className="space-y-2">
+      <p className="text-xs font-medium tracking-[0.22em] text-amber-200/80 uppercase">
+        TypeSafe · System One
+      </p>
+      <h1 className="font-heading text-4xl text-balance md:text-5xl">Jev Chess</h1>
+      {gateConfigured === true && (
+        <p className="max-w-xl text-sm text-muted-foreground text-pretty">
+          The rules live in chess.js. Jev only chooses among the legal UCI moves you send it —
+          it is not a chat model and never writes a move from scratch.
+        </p>
+      )}
+    </div>
+  );
+
+  if (gateConfigured === null) {
+    return (
+      <div className={pageClass}>
+        {heading}
+        <p className="text-sm text-muted-foreground">Checking gate…</p>
+      </div>
+    );
+  }
+
+  if (gateConfigured === false) {
+    return (
+      <div className={pageClass}>
+        {heading}
+        <Alert>
+          <AlertTitle>Gate is not configured</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>
+              Jev will not play until the gate is configured. Set{" "}
+              <span className="font-mono">SITE_HMAC_KEY</span> and{" "}
+              <span className="font-mono">SITE_PASSWORD_HMAC</span> on the Vercel project
+              for Production. The password itself is never stored. Redeploy after saving
+              the variables.
+            </p>
+            <GateSetup />
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
+    <div className={pageClass}>
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-medium tracking-[0.22em] text-amber-200/80 uppercase">
-            TypeSafe · System One
-          </p>
-          <h1 className="font-heading text-4xl text-balance md:text-5xl">Jev Chess</h1>
-          <p className="max-w-xl text-sm text-muted-foreground text-pretty">
-            The rules live in chess.js. Jev only chooses among the legal UCI moves you send it —
-            it is not a chat model and never writes a move from scratch.
-          </p>
-        </div>
+        {heading}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => startGame(humanSide === "white" ? "black" : "white")}>
             Play as {humanSide === "white" ? "Black" : "White"}
@@ -252,41 +291,28 @@ export function Game() {
 
       {unlocked !== true && (
         <Alert>
-          <AlertTitle>{gateConfigured === false ? "Gate is not configured" : "Password required"}</AlertTitle>
+          <AlertTitle>Password required</AlertTitle>
           <AlertDescription className="space-y-3">
-            {gateConfigured === false ? (
-              <>
-                <p>
-                  Jev will not play until the gate is configured. Set{" "}
-                  <span className="font-mono">SITE_HMAC_KEY</span> and{" "}
-                  <span className="font-mono">SITE_PASSWORD_HMAC</span> on the Vercel project
-                  for Production. The password itself is never stored. Redeploy after saving
-                  the variables.
-                </p>
-                <GateSetup />
-              </>
-            ) : (
-              <form
-                className="flex flex-col gap-2 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void unlock();
-                }}
-              >
-                <input
-                  type="password"
-                  name="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
-                  placeholder="Password"
-                />
-                <Button type="submit" size="sm">
-                  Unlock
-                </Button>
-              </form>
-            )}
+            <form
+              className="flex flex-col gap-2 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void unlock();
+              }}
+            >
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
+                placeholder="Password"
+              />
+              <Button type="submit" size="sm">
+                Unlock
+              </Button>
+            </form>
             {gateError && <p>{gateError}</p>}
           </AlertDescription>
         </Alert>
