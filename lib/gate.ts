@@ -4,7 +4,7 @@ export const HMAC_KEY_ENV = "SITE_HMAC_KEY";
 export const PASSWORD_HMAC_ENV = "SITE_PASSWORD_HMAC";
 export const GATE_COOKIE = "jev_gate";
 
-const SESSION_SECONDS = 60 * 60 * 24 * 7;
+const SESSION_SECONDS = 60 * 60 * 24 * 3;
 
 function trimmed(name: string): string | undefined {
   const value = process.env[name]?.trim();
